@@ -335,6 +335,10 @@ def macro_parser(macro_id, macro_type, prop_node, lresolver):
         props['drag_pitch'] = float(drag.get('pitch', 0))
         props['drag_yaw'] = float(drag.get('yaw', 0))
         props['drag_roll'] = float(drag.get('roll', 0))
+    elif macro_type == 'buildmodule':
+        pass
+    elif macro_type == 'buildprocessor':
+        pass
     else:
         LOG.error('Failed to load macro properties: unhandled type %s for %s',
                   macro_type, macro_id)
@@ -458,6 +462,10 @@ def component_parser(comp_name, comp_type, comp_node):
     elif comp_type == 'bomblauncher':
         props['size'] = get_component_size(comp_node, comp_name, conns_xpath,
                                            'bomblauncher')
+    elif comp_type == 'buildmodule':
+        pass
+    elif comp_type == 'buildprocessor':
+        pass
     else:
         LOG.error('Failed to load component properties: unhandled type %s '
                   'for %s', comp_type, comp_name)

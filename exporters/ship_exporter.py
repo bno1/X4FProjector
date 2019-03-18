@@ -80,6 +80,10 @@ def process_connections(macro_db, connections, ship, ship_id):
             pass
         elif macro.type == 'dockarea':
             pass
+        elif macro.type == 'buildmodule':
+            pass
+        elif macro.type == 'buildprocessor':
+            pass
         elif macro.type == 'dockingbay':
             bay = copy.copy(macro.properties)
             bay['name'] = macro.name

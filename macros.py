@@ -72,6 +72,12 @@ def resolve_macro_xml_path(macro_id):
     if re.fullmatch(r'dockingbay_.*_macro', macro_id):
         return ['assets/structures/dock/macros/{}.xml'.format(macro_id)]
 
+    if re.fullmatch(r'buildmodule_.*_macro', macro_id):
+        return ['assets/structures/buildmodule/macros/{}.xml'.format(macro_id)]
+
+    if re.fullmatch(r'buildprocessor_.*_macro', macro_id):
+        return ['assets/structures/buildmodule/macros/{}.xml'.format(macro_id)]
+
     LOG.error('Failed to load properties for macro %s: unhandled', macro_id)
     return []
 
@@ -170,6 +176,11 @@ def resolve_component_xml_path(name):
 
     if name.startswith('missile_'):
         return ['assets/props/WeaponSystems/missile/{}.xml'.format(name)]
+
+    if name.startswith('buildmodule_') or \
+       name == 'generic_buildmodule' or \
+       name == 'generic_buildprocessor':
+        return ['assets/structures/buildmodule/{}.xml'.format(name)]
 
     LOG.error('Failed to load properties for component %s: unhandled', name)
     return []
