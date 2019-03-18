@@ -7,8 +7,8 @@ that are easy for humans or other programs and scripts to read.
 The purpose is to provide as much (useful) information as possible to aid
 players who want to optimize their play, to provide this information in format
 that is easy to read and process, and to provide this information on demand
-(no need to wait for wiki pages to update their data -- just rerun this
-script).
+(no need to wait for wiki pages to update their data for a new version of the
+game -- just rerun this script).
 
 Beware that a lot of data that is outputted is very raw and requires additional
 processing to obtain something usable. Also, some of the outputted data might
@@ -24,9 +24,9 @@ shields, num. turrets, cargobay, docks, ship storage, and more.
 stats, missile stats, and more.
     * Wares - price, production methods, tags, volume, license, module
 construction, blueprints, and more.
-    * *TODO Station modules*
+    * *TODO Station modules*.
   * **Supported output formats**:
-    * CSV. Data is saved in a tabular format which can be loaded in Excel.
+    * CSV. Data is saved in a tabular format which can be loaded into Excel.
 Some things are omitted.
     * JSON. Data is saved in a structured format. Nothing is omitted.
     * YAML (requires pyyaml). Data is saved in a structured format. Nothing is
@@ -42,7 +42,7 @@ to perform any extra steps. Avoids loading all the .cat files unless it has to.
   * **Reusable code**. Feel free to pick up parts of this project such as the
 CatFileLoader, LanguageResolver or the MacroDB for your project. I would
 appreciate if you would credit my work if you use parts of my project.
-  * *TODO Support for mods*
+  * *TODO Support for mods*.
 
 ## Installation
 
@@ -139,37 +139,37 @@ strings.
 
 To export all the game data that this script reads into the directory `x4_data`
 in the CSV format simply run:
-```bash
+```
 ./X4FProjector.py -g path/to/x4 export all -d ./x4_data -f csv
 ```
 This will override existing files in `x4_data`.
 
 The `all` is optional if no other object is specified. The following has the
 same effect:
-```bash
+```
 ./X4FProjector.py -g path/to/x4 export -d ./x4_data -f csv
 ```
 
 You can choose which game objects to export:
-```bash
+```
 ./X4FProjector.py -g path/to/x4 export ships engines wares -d ./x4_data -f csv
 ```
 
 To change the language used to resolve strings pass an `-l` option. Example for
 German:
-```bash
+```
 ./X4FProjector.py -g path/to/x4 -l de export ships engines wares -d ./x4_data -f csv
 ```
 
 ### resolve-string example
-```bash
+```
 ./X4FProjector.py -g path/to/x4 resolve-string 'This ship is {20101,30302}' 'That ship is {20101,30303}'
 This ship is Nemesis Vanguard
 That ship is Nemesis Sentinel
 ```
 
 ### resolve-string example using German language
-```bash
+```
 ./X4FProjector.py -g path/to/x4 -l de resolve-string 'This ship is {20101,30302}' 'That ship is {20101,30303}'
 This ship is Nemesis Angreifer
 That ship is Nemesis Verteidiger
