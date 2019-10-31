@@ -146,9 +146,9 @@ class AutoFormatter:
             return
 
         if output_format == 'yaml':
-            import importlib
+            from importlib import util
 
-            if importlib.util.find_spec('yaml') is not None:
+            if util.find_spec('yaml') is not None:
                 output_format = 'pyyaml'
             else:
                 raise ImportError('Cannot find a supported yaml module')
