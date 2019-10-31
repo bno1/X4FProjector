@@ -321,7 +321,7 @@ class CatFileLoader:
 
                 # match 'path size timestamp hash' format
                 # path might contain spaces, so a rsplit is needed
-                parts = line.rsplit(' ', 3)
+                parts = line.lower().rsplit(' ', 3)
                 if len(parts) != 4:
                     LOG.error('Cat file %s has invalid entry on line %s',
                               cat_path, line_no + 1)
@@ -473,7 +473,7 @@ class CatFileLoader:
         """Open file.
         Returns a binary file-like object.
         """
-        parts = split_game_path(path)
+        parts = split_game_path(path.lower())
         if not path:
             raise ValueError('Empty path {}'.format(path))
 
@@ -487,7 +487,7 @@ class CatFileLoader:
 
     def file_exists(self, path):
         """Check if file exists."""
-        parts = split_game_path(path)
+        parts = split_game_path(path.lower())
 
         (entry, _) = self._find_file(parts[:-1], parts[-1])
 
@@ -495,7 +495,7 @@ class CatFileLoader:
 
     def list_files(self, path):
         """List game files under a game directory."""
-        parts = split_game_path(path)
+        parts = split_game_path(path.lower())
 
         # rebuild full path to remove possible double slashes and to correctly
         # add a slash at the end
