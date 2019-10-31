@@ -34,158 +34,6 @@ class Macro:
         self.connections.append((conn_id, macro_id))
 
 
-def resolve_macro_xml_path(macro_id):
-    """Returns a list of paths to the xml file defining a macro.
-    Exactly one of the files paths returned should exist and contain the macro.
-    The reason for returning a list is because 'storage_*_macro' may be found
-    in 2 paths:
-        - 'assets/units/ship_<size>/macros/<macro_id>.xml'
-        - 'assets/props/StorageModules/macros/<macro_id>.xml'
-    """
-
-    if re.fullmatch(r'storage_[a-z]{1,3}_(xs|s|m|l|xl)_.*_macro', macro_id):
-        match = re.fullmatch(r'storage_[a-z]{1,3}_(xs|s|m|l|xl)_.*_macro',
-                             macro_id)
-        return [
-            'assets/units/ship_{}/macros/{}.xml'.format(match[1], macro_id),
-            'assets/props/StorageModules/macros/{}.xml'.format(macro_id),
-        ]
-
-    if re.fullmatch(r'shipstorage_.*_macro', macro_id):
-        return ['assets/props/SurfaceElements/macros/{}.xml'.format(macro_id)]
-
-    if re.fullmatch(r'dock_gen_.*_macro', macro_id):
-        return ['assets/props/SurfaceElements/macros/{}.xml'.format(macro_id)]
-
-    if re.fullmatch(r'engine_.*_macro', macro_id):
-        return ['assets/props/Engines/macros/{}.xml'.format(macro_id)]
-
-    if re.fullmatch(r'bridge_.*_macro', macro_id):
-        return ['assets/interiors/bridges/macros/{}.xml'.format(macro_id)]
-
-    if re.fullmatch(r'dockarea_.*_macro', macro_id):
-        return ['assets/structures/dock/macros/{}.xml'.format(macro_id)]
-
-    if re.fullmatch(r'launchtube_.*_macro', macro_id):
-        return ['assets/structures/dock/macros/{}.xml'.format(macro_id)]
-
-    if re.fullmatch(r'dockingbay_.*_macro', macro_id):
-        return ['assets/structures/dock/macros/{}.xml'.format(macro_id)]
-
-    if re.fullmatch(r'buildmodule_.*_macro', macro_id):
-        return ['assets/structures/buildmodule/macros/{}.xml'.format(macro_id)]
-
-    if re.fullmatch(r'buildprocessor_.*_macro', macro_id):
-        return ['assets/structures/buildmodule/macros/{}.xml'.format(macro_id)]
-
-    LOG.error('Failed to load properties for macro %s: unhandled', macro_id)
-    return []
-
-
-# pylint: disable=too-many-return-statements,too-many-branches
-def resolve_component_xml_path(name):
-    """Returns a list of paths to the xml file defining a component.
-    A list is returned in order to keep this function similar to
-    resolve_macro_xml_path. This function should be handled in a similar
-    manner.
-    """
-    if re.fullmatch(r'ship_[a-z]{1,3}_(xs|s|m|l|xl)_.*', name):
-        match = re.fullmatch(r'ship_[a-z]{1,3}_(xs|s|m|l|xl)_.*', name)
-        return ['assets/units/size_{}/{}.xml'.format(match[1], name)]
-
-    if name == 'generic_storage':
-        return ['assets/props/StorageModules/generic_storage.xml']
-
-    if name == 'generic_cockpit' or \
-       re.fullmatch(r'cockpit_invisible.*', name):
-        return ['assets/units/size_s/{}.xml'.format(name)]
-
-    if re.fullmatch(r'bridge_.*', name):
-        return ['assets/interiors/bridges/{}.xml'.format(name)]
-
-    if re.fullmatch(r'bridge_.*', name):
-        return ['assets/interiors/dock/{}.xml'.format(name)]
-
-    if re.fullmatch(r'dockarea_.*', name) or \
-       re.fullmatch(r'dockingbay_.*', name) or \
-       re.fullmatch(r'launchtube_.*', name):
-        return ['assets/structures/dock/{}.xml'.format(name)]
-
-    if re.fullmatch(r'dock_gen_.*', name) or \
-       re.fullmatch(r'shield_.*', name) or \
-       name == 'generic_shieldgenerator' or \
-       name == 'generic_dockingbay':
-        return ['assets/props/SurfaceElements/{}.xml'.format(name)]
-
-    if re.fullmatch(r'generic_engine.*', name) or \
-       re.fullmatch(r'engine_.*', name) or \
-       re.fullmatch(r'thruster_.*', name):
-        return ['assets/props/Engines/{}.xml'.format(name)]
-
-    if re.fullmatch(r'cockpit_[a-z]{1,3}_(xs|s|m|l|xl)_.*', name):
-        match = re.fullmatch(r'cockpit_[a-z]{1,3}_(xs|s|m|l|xl)_.*', name)
-        return ['assets/units/size_{}/{}.xml'.format(match[1], name)]
-
-    if re.fullmatch(r'weapon_[a-z]{1,3}_l_destroyer_.*', name):
-        return ['assets/props/WeaponSystems/capital/{}.xml'.format(name)]
-
-    if re.fullmatch(r'weapon_[a-z]{1,3}_[sml]_(laser|shotgun)_.*', name) or \
-       re.fullmatch(r'turret_[a-z]{1,3}_[sml]_(laser|shotgun)_.*', name) or \
-       name == 'weapon_gen_lasertower_01_mk2' or \
-       name == 'weapon_gen_xs_standard':
-        return ['assets/props/WeaponSystems/standard/{}.xml'.format(name)]
-
-    heavy_weapon_re = r'(weapon|turret)_[a-z]{1,3}_[sml]_' \
-                      r'(plasma|gatling|railgun|charge)_.*'
-    if re.fullmatch(heavy_weapon_re, name):
-        return ['assets/props/WeaponSystems/heavy/{}.xml'.format(name)]
-
-    if re.fullmatch(r'weapon_[a-z]{1,3}_[sml]_mining_.*', name) or \
-       re.fullmatch(r'turret_[a-z]{1,3}_[sml]_mining_.*', name):
-        return ['assets/props/WeaponSystems/mining/{}.xml'.format(name)]
-
-    if re.fullmatch(r'weapon_[a-z]{1,3}_[sml]_ion_.*', name) or \
-       re.fullmatch(r'turret_[a-z]{1,3}_[sml]_ion_.*', name) or \
-       name == 'weapon_gen_lasertower_01_mk1':
-        return ['assets/props/WeaponSystems/energy/{}.xml'.format(name)]
-
-    if re.fullmatch(r'weapon_[a-z]{1,3}_[sml]_beam_.*', name) or \
-       re.fullmatch(r'turret_[a-z]{1,3}_[sml]_beam_.*', name):
-        return [
-            'assets/props/WeaponSystems/energy/{}.xml'.format(name),
-            'assets/props/WeaponSystems/heavy/{}.xml'.format(name),
-        ]
-
-    if re.fullmatch(r'spacesuit_.*(bomblauncher|laser|repairweapon)_.*', name):
-        return ['assets/props/WeaponSystems/spacesuit/{}.xml'.format(name)]
-
-    if name.startswith('bullet_') or name.startswith('bomb_'):
-        return ['assets/fx/weaponFx/{}.xml'.format(name)]
-
-    if re.fullmatch(r'weapon_[a-z]{1,3}_[sml]_dumbfire_.*', name) or \
-       re.fullmatch(r'turret_[a-z]{1,3}_[sml]_dumbfire_.*', name):
-        return ['assets/props/WeaponSystems/dumbfire/{}.xml'.format(name)]
-
-    if re.fullmatch(r'weapon_[a-z]{1,3}_[sml]_guided_.*', name) or \
-       re.fullmatch(r'turret_[a-z]{1,3}_[sml]_guided_.*', name):
-        return ['assets/props/WeaponSystems/guided/{}.xml'.format(name)]
-
-    if re.fullmatch(r'weapon_[a-z]{1,3}_[sml]_torpedo_.*', name) or \
-       re.fullmatch(r'turret_[a-z]{1,3}_[sml]_torpedo_.*', name):
-        return ['assets/props/WeaponSystems/torpedo/{}.xml'.format(name)]
-
-    if name.startswith('missile_'):
-        return ['assets/props/WeaponSystems/missile/{}.xml'.format(name)]
-
-    if name.startswith('buildmodule_') or \
-       name == 'generic_buildmodule' or \
-       name == 'generic_buildprocessor':
-        return ['assets/structures/buildmodule/{}.xml'.format(name)]
-
-    LOG.error('Failed to load properties for component %s: unhandled', name)
-    return []
-
-
 def noop_parser(_name, _entity_type, _node):
     """Macro and component parser that does nothing and returns an empty dict.
     Used as default parsers for Macro.
@@ -222,16 +70,40 @@ class MacroDB:
         Arguments:
         floader: file loader that will be used by this object.
         """
+        self.macro_index = {}
+        self.component_index = {}
         self.floader = floader
         self.macros = {}
         self.macros_by_type = {}
         self.dependencies = set()
 
-        self.macro_path_resolver = resolve_macro_xml_path
-        self.component_path_resolver = resolve_component_xml_path
-
         self.macro_parser = noop_parser
         self.component_parser = noop_parser
+
+        self._load_index('index/macros.xml', self.macro_index)
+        self._load_index('index/components.xml', self.component_index)
+
+        self._fix_missing_index_entries()
+
+    def _load_index(self, path, dest):
+        """Load an index file.
+
+        Arguments:
+        path: game path to the index file.
+        dest: dictionary into which to insert index entries.
+        """
+
+        with self.floader.open_file(path) as idx_file:
+            idx_tree = etree.parse(idx_file)
+
+        for entry in idx_tree.xpath('./entry[@name][@value]'):
+            dest[entry.get('name')] = entry.get('value').replace('\\', '/') + '.xml'
+
+    def _fix_missing_index_entries(self):
+        """Fix indexes. Add missing entries or repair broken ones."""
+
+        self.component_index['cockpit_invisible_escapepod'] = \
+            'assets/units/size_s/cockpit_invisible_escapepod.xml'
 
     def set_macro_parser(self, macro_parser):
         """Sets the macro parser."""
@@ -241,27 +113,21 @@ class MacroDB:
         """Sets the component parser."""
         self.component_parser = component_parser
 
-    def load_component_propertie(self, comp_name):
+    def load_component_properties(self, comp_name):
         """Loads a component, parses it and returns the properties dict.
 
         Arguments:
         comp_name: name (id) of component to load.
         """
 
-        paths = resolve_component_xml_path(comp_name)
-        comp_path = None
+        path = self.component_index.get(comp_name)
 
-        for path in paths:
-            if self.floader.file_exists(path):
-                comp_path = path
-                break
-
-        if not comp_path:
-            LOG.error('Failed to load component %s from paths %s',
-                      comp_name, paths)
+        if not path:
+            LOG.error('Failed to load component %s, not found in index',
+                      comp_name)
             return {}
 
-        with self.floader.open_file(comp_path) as comp_file:
+        with self.floader.open_file(path) as comp_file:
             comp_tree = etree.parse(comp_file)
 
         comp_xpath = "./component[@name='{}']".format(comp_name)
@@ -277,7 +143,7 @@ class MacroDB:
             return self.component_parser(comp_name, comp_type, comp_node)
         else:
             LOG.warning('No components with name %s in file %s',
-                        comp_name, comp_path)
+                        comp_name, path)
 
         return {}
 
@@ -316,7 +182,7 @@ class MacroDB:
                 comp_name = comp_nodes[0].get('ref')
 
                 # parse properties from the component
-                comp_props = self.load_component_propertie(comp_name)
+                comp_props = self.load_component_properties(comp_name)
                 properties.update(comp_props)
 
             macro = Macro(macro_name, macro_type, properties)
@@ -357,17 +223,16 @@ class MacroDB:
 
         # step 3: try to load dependencies
         for ref in deps_before:
-            paths = resolve_macro_xml_path(ref)
-            found = False
+            path = self.macro_index.get(ref)
+            if not path:
+                LOG.error('Failed to load ref %s, not found in index', ref)
+                continue
 
-            for path in paths:
-                if self.floader.file_exists(path):
-                    found = True
-                    self.load_macro_xml_file(path)
-                    break
+            if not self.floader.file_exists(path):
+                LOG.error('Failed to load ref %s, file %s not found', ref, path)
+                continue
 
-            if not found:
-                LOG.error('Failed to load ref %s from paths %s', ref, paths)
+            self.load_macro_xml_file(path)
 
         # step 4: return True if the new dependency set is different
         return deps_before != self.dependencies
