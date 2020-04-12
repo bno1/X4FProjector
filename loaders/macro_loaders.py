@@ -197,7 +197,7 @@ def macro_parser(macro_id, macro_type, prop_node, lresolver):
         props['reload_time'] = float(reload_attrs.get('time', 0))
 
         zoom = get_xpath_attribs(prop_node, './zoom', {})
-        props['zoom_factor'] = int(zoom.get('factor', 0))
+        props['zoom_factor'] = float(zoom.get('factor', 0))
         props['zoom_time'] = float(zoom.get('time', 0))
         props['zoom_delay'] = float(zoom.get('delay', 0))
 
