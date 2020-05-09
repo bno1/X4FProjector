@@ -120,6 +120,8 @@ def process_connections(macro_db, connections, ship, ship_id):
         elif macro.type == 'storage':
             ship['cargobay'] = macro.properties['cargobay']
             ship['storage'] = macro.properties['storage_type'].split(' ')
+        elif macro.type == 'destructible':
+            pass
         else:
             LOG.warning('Unhandled connection type %s when exporting ship %s',
                         macro.type, ship_id)
