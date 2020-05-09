@@ -426,7 +426,7 @@ class CatFileLoader:
     def _load_extension(self, ext_dir):
         """Looks .cat and .dat files in ext_dir and records them in
         self.data_files. Similar to load_from_game_root.
-        
+
         Arguments:
         ext_dir: path to extensions directory
         """
