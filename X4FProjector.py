@@ -67,6 +67,21 @@ Output:
 """
 
 
+def list_extension_paths(game_root):
+    """Get extension names and paths from the game root."""
+    exts_dir = os.path.join(game_root, "extensions")
+    if not os.path.isdir(exts_dir):
+        return []
+
+    extensions = []
+
+    for ext_dir in os.scandir(exts_dir):
+        if ext_dir.is_dir():
+            extensions.append((ext_dir.name, ext_dir.path))
+
+    return extensions
+
+
 def cmd_resolve_strings(lresolver, resolve_strings):
     """Handle resolve-string command."""
     for string in resolve_strings:
@@ -92,30 +107,34 @@ def cmd_export(floader, lresolver, macro_db, export_objects, export_dir,
     wares = None
 
     export_format = export_format.strip().lower()
-    extension = exporters.AutoFormatter.get_extension(export_format)
+    file_extension = exporters.AutoFormatter.get_extension(export_format)
 
     def make_path(obj):
         return os.path.normpath(os.path.join(
-            export_dir, '{}.{}'.format(obj, extension)
+            export_dir, '{}.{}'.format(obj, file_extension)
         ))
 
-    for obj in objects:
-        if obj == 'engines':
-            loaders.engine_loader(floader, lresolver, macro_db)
-        elif obj == 'missilelaunchers':
-            loaders.missilelauncher_loader(floader, lresolver, macro_db)
-        elif obj == 'shields':
-            loaders.shield_loader(floader, lresolver, macro_db)
-        elif obj == 'ships':
-            loaders.ship_loader(floader, lresolver, macro_db)
-        elif obj == 'wares':
-            wares = loaders.ware_loader(floader, lresolver)
-        elif obj == 'weapons':
-            loaders.weapon_loader(floader, lresolver, macro_db)
-        else:
-            raise ValueError('Unknown object type: {}'.format(obj))
+    wares = {}
 
-    macro_db.resolve_dependencies()
+    for ext_name in [None] + floader.get_extensions():
+        for obj in objects:
+            if obj == 'engines':
+                loaders.engine_loader(floader, lresolver, macro_db, ext_name)
+            elif obj == 'missilelaunchers':
+                loaders.missilelauncher_loader(floader, lresolver, macro_db,
+                                               ext_name)
+            elif obj == 'shields':
+                loaders.shield_loader(floader, lresolver, macro_db, ext_name)
+            elif obj == 'ships':
+                loaders.ship_loader(floader, lresolver, macro_db, ext_name)
+            elif obj == 'wares':
+                wares.update(loaders.ware_loader(floader, lresolver, ext_name))
+            elif obj == 'weapons':
+                loaders.weapon_loader(floader, lresolver, macro_db, ext_name)
+            else:
+                raise ValueError('Unknown object type: {}'.format(obj))
+
+        macro_db.resolve_dependencies()
 
     for obj in objects:
         dest = make_path(obj)
@@ -152,6 +171,9 @@ def main(command, verbose=False, game_root='./', file_loader='cat',
     if file_loader == 'cat':
         floader = file_loaders.CatFileLoader(game_root)
         floader.load_from_game_root()
+
+        for ext_name, ext_dir in list_extension_paths(game_root):
+            floader.load_extension(ext_name, ext_dir)
     elif file_loader == 'fs':
         floader = file_loaders.FSFileLoader(game_root)
     else:

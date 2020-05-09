@@ -70,3 +70,16 @@ def find_nodes_with_tag(root_node, xpath, tag):
     for node in root_node.xpath(xpath):
         if tag_re.search(node.get('tags', '')):
             yield node
+
+def get_path_in_ext(path, ext_name):
+    """Transform a game path relative to an extension root into a game path
+    relative to the game root.
+
+    Arguments:
+    path: game path relative to the extension path
+    ext_name: extension name
+    """
+    if ext_name:
+        return "/extensions/{}/{}".format(ext_name, path)
+
+    return path

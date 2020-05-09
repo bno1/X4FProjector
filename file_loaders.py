@@ -23,6 +23,10 @@ def split_game_path(path):
 class FileLoader:
     """Base class for file loaders."""
 
+    def get_extensions(self):
+        """Return the list of names of extensions in the game directory."""
+        raise NotImplementedError()
+
     def open_file(self, path):
         """Open file.
         Returns a binary file-like object.
@@ -66,6 +70,10 @@ class FSFileLoader:
         files_root: location of the extracted game files.
         """
         self.root = os.path.normpath(files_root)
+
+    def get_extensions(self):
+        """Not implemented yet."""
+        return []
 
     def _resolve(self, path):
         """Resolves a game file path to a file system path."""
@@ -211,7 +219,7 @@ class DatGameFile(io.RawIOBase):
         else:
             raise ValueError('Invalid seek whence: {}'.format(whence))
 
-        self.dat_file.seek(io.SEEK_SET, abs_pos)
+        self.dat_file.seek(abs_pos, io.SEEK_SET)
         return abs_pos - self.start
 
     def seekable(self):
@@ -259,12 +267,11 @@ class DirNode:
     """
 
     # optimization: http://book.pythontips.com/en/latest/__slots__magic.html
-    __slots__ = ('files', 'children')
+    __slots__ = ('children')
 
     def __init__(self):
         """Initialize node with empty files and empty children."""
 
-        self.files = {}
         self.children = {}
 
 
@@ -273,7 +280,7 @@ class CatFileLoader:
     Cat files should be loaded in the order of highest to lowest priority.
 
     Members:
-    game_root: path to the game installation.
+    fs_root: path to the cat root directory.
     file_tree: DirNode instance representing the root of the game files
                hierarchy.
     data_files: pairs of (cat_path, dat_path) of data files to load, ordered
@@ -284,14 +291,13 @@ class CatFileLoader:
             multiple times.
     """
 
-    def __init__(self, game_root='./'):
+    def __init__(self, fs_root='./'):
         """Initializes the cat loader.
 
         Arguments:
-        game_root: path to game installation, where the .cat and .dat files are
-                   stored.
+        fs_root: path to where the .cat and .dat files are stored.
         """
-        self.game_root = game_root
+        self.fs_root = fs_root
         self.file_tree = DirNode()
         self.data_files = []
         self.loaded = set()
@@ -357,8 +363,8 @@ class CatFileLoader:
 
                 k = k.children[directory]
 
-            if entry.name not in k.files:
-                k.files[entry.name] = entry
+            if entry.name not in k.children:
+                k.children[entry.name] = entry
 
         self.loaded.add(cat_path)
 
@@ -397,8 +403,8 @@ class CatFileLoader:
             cat_name = '{:02d}.cat'.format(i)
             dat_name = '{:02d}.dat'.format(i)
 
-            cat_path = os.path.join(self.game_root, cat_name)
-            dat_path = os.path.join(self.game_root, dat_name)
+            cat_path = os.path.join(self.fs_root, cat_name)
+            dat_path = os.path.join(self.fs_root, dat_name)
 
             if os.path.isfile(cat_path) and os.path.isfile(dat_path):
                 data_files.append((cat_path, dat_path))
@@ -410,64 +416,105 @@ class CatFileLoader:
 
         return loaded
 
-    def _find_directory(self, directories):
-        """Tries to return the DirNode for the directory described in the
-        directories list. Loads new cat files if needed in order to resolve the
-        path.
+    def get_extensions(self):
+        ext_node = self.file_tree.children.get('extensions')
+        if ext_node is not None:
+            return list(ext_node.children.keys())
+
+        return []
+
+    def _load_extension(self, ext_dir):
+        """Looks .cat and .dat files in ext_dir and records them in
+        self.data_files. Similar to load_from_game_root.
+        
+        Arguments:
+        ext_dir: path to extensions directory
+        """
+        loaded = 0
+        data_files = []
+
+        for i in range(1, 100):
+            cat_name = 'ext_{:02d}.cat'.format(i)
+            dat_name = 'ext_{:02d}.dat'.format(i)
+
+            cat_path = os.path.join(ext_dir, cat_name)
+            dat_path = os.path.join(ext_dir, dat_name)
+
+            if os.path.isfile(cat_path) and os.path.isfile(dat_path):
+                data_files.append((cat_path, dat_path))
+                loaded += 1
+            else:
+                break
+
+        self.data_files = data_files + self.data_files
+
+        return loaded
+
+    def load_extension(self, ext_name, ext_dir):
+        """Add an extension to the internal fill tree of this file loader.
+
+        Arguments:
+        ext_name: name of the extension
+        ext_dir: path to extensions directory
+        """
+        exts_node = self.file_tree.children.get('extensions')
+        if exts_node is None:
+            exts_node = DirNode()
+            self.file_tree.children['extensions'] = exts_node
+
+        if ext_name in exts_node.children:
+            raise ValueError('Extensions {} already present'.format(ext_name))
+
+        floader = CatFileLoader(ext_dir)
+        exts_node.children[ext_name] = floader
+
+        return floader._load_extension(ext_dir)
+
+    def _find_entry(self, parts):
+        """Tries to find the entry at the path described in the parts list.
+        Loads new cat files if needed in order to resolve the path.
         Returns None if the path cannot be resolved.
 
         Arguments:
-        directories: list of directory names describing the path to find.
-                     E.g. to find the directory 'assets/props/Engines/' pass
-                     ['assets', 'props', 'Engines'] as this argument.
+        parts: list of path compoentns describing the path to find.
+               E.g. to find the directory 'assets/props/Engines/engine.xml' pass
+                    ['assets', 'props', 'Engines', 'engine.xml'] as this
+                    argument.
+
+        Returns:
+        owner, entry
+        owner: CatFileLoader owning the returned entry
+        entry: DirNode|CatEntry|CatFileLoader
         """
         k = self.file_tree
 
-        for directory in directories:
-            knext = k.children.get(directory)
+        while parts:
+            if isinstance(k, CatEntry):
+                # A file cannot contain other files
+                return None, None
 
-            # load new .cat file and retry until the directory is found or no
-            # new .cat file can be loaded.
-            while not knext and self._load_next_cat_file():
-                knext = k.children.get(directory)
+            if isinstance(k, CatFileLoader):
+                # delegate the rest of the search to this fie loader
+                return k._find_entry(parts)
 
-            if not knext:
-                return None
+            if isinstance(k, DirNode):
+                part = parts.pop(0)
+                knext = k.children.get(part)
 
-            k = knext
+                # load new .cat file and retry until the directory is found or
+                # no new .cat file can be loaded.
+                while not knext and self._load_next_cat_file():
+                    knext = k.children.get(part)
 
-        return k
+                if not knext:
+                    return None, None
 
-    def _find_file(self, directories, filename):
-        """Tries to return the CatEntry for the file referenced by the path
-        described in the directories list and filename.
-        Loads new cat files if needed in order to resolve the path.
-        Returns a (CatEntry, DirNode) containing the file entry and parent
-        directory node.
-        Returns (None, None) if the path cannot be resolved.
+                k = knext
+                continue
 
-        Arguments:
-        directories: list of directory names describing the path to the parent
-                     directory of the file.
-        filename: name of the file to load.
+            raise ValueError('Unexpected node type {}'.format(type(k)))
 
-        Example:
-        To find the dfile 'assets/props/Engines/generic_engine.xml' pass
-        ['assets', 'props', 'Engines'] and 'generic_engine.xml' as arguments.
-        """
-        directory = self._find_directory(directories)
-
-        if not directory:
-            return (None, None)
-
-        entry = directory.files.get(filename)
-
-        # load new .cat file and retry until the directory is found or no new
-        # .cat file can be loaded.
-        while not entry and self._load_next_cat_file():
-            entry = directory.files.get(filename)
-
-        return (entry, directory)
+        return self, k
 
     def open_file(self, path):
         """Open file.
@@ -477,9 +524,13 @@ class CatFileLoader:
         if not path:
             raise ValueError('Empty path {}'.format(path))
 
-        (entry, _) = self._find_file(parts[:-1], parts[-1])
+        _, entry = self._find_entry(parts)
         if not entry:
             raise ValueError('Path {} isn\'t a file'.format(path))
+
+        if not isinstance(entry, CatEntry):
+            raise ValueError(
+                'Path {} isn\'t a file, but a: {}'.format(path, type(entry)))
 
         dat_file = open(entry.dat_path, 'rb')
 
@@ -489,9 +540,9 @@ class CatFileLoader:
         """Check if file exists."""
         parts = split_game_path(path.lower())
 
-        (entry, _) = self._find_file(parts[:-1], parts[-1])
+        (_, entry) = self._find_entry(parts)
 
-        return bool(entry)
+        return entry is not None and isinstance(entry, CatEntry)
 
     def list_files(self, path):
         """List game files under a game directory."""
@@ -501,12 +552,19 @@ class CatFileLoader:
         # add a slash at the end
         full_path = '/'.join(parts) + '/'
 
-        # must load ALL .cat files to ensure that all the files in the
-        # directory are known
-        while self._load_next_cat_file():
-            pass
+        owner, entry = self._find_entry(parts)
+        if isinstance(entry, CatFileLoader):
+            for e in entry.list_files(''):
+                yield Entry(full_path + e.path, e.name)
+        elif isinstance(entry, DirNode):
+            # must load ALL .cat files to ensure that all the files in the
+            # directory are known
+            while owner._load_next_cat_file():
+                pass
 
-        directory = self._find_directory(parts)
-
-        for entry in directory.files.values():
-            yield Entry(full_path + entry.name, entry.name)
+            for e in entry.children.values():
+                if isinstance(e, CatEntry):
+                    yield Entry(full_path + e.name, e.name)
+        else:
+            raise ValueError(
+                'Path {} isn\'t a file, but a: {}'.format(path, type(entry)))

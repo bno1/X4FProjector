@@ -3,6 +3,7 @@
 import logging
 import re
 from misc import get_xpath_attrib, get_xpath_attribs, find_nodes_with_tag
+from misc import get_path_in_ext
 
 
 LOG = logging.getLogger(__name__)
@@ -339,6 +340,8 @@ def macro_parser(macro_id, macro_type, prop_node, lresolver):
         pass
     elif macro_type == 'buildprocessor':
         pass
+    elif macro_type == 'destructible':
+        pass
     else:
         LOG.error('Failed to load macro properties: unhandled type %s for %s',
                   macro_type, macro_id)
@@ -466,6 +469,8 @@ def component_parser(comp_name, comp_type, comp_node):
         pass
     elif comp_type == 'buildprocessor':
         pass
+    elif comp_type == 'destructible':
+        pass
     else:
         LOG.error('Failed to load component properties: unhandled type %s '
                   'for %s', comp_type, comp_name)
@@ -473,7 +478,7 @@ def component_parser(comp_name, comp_type, comp_node):
     return props
 
 
-def ship_loader(floader, lresolver, macro_db):
+def ship_loader(floader, lresolver, macro_db, ext_name):
     """Loads ship game macro files and returns ship data.
     This function will set the macro_db's macro parser and component parser.
 
@@ -481,6 +486,7 @@ def ship_loader(floader, lresolver, macro_db):
     floader: FileLoader to use.
     lresolver: LanguageResolver used to resolve ship names.
     macro_db: MacroDB used to load macros.
+    ext_name: extension to load ships from. Use None for the base game.
     """
 
     # pylint: disable=no-value-for-parameter
@@ -489,13 +495,15 @@ def ship_loader(floader, lresolver, macro_db):
     )
     macro_db.set_component_parser(component_parser)
 
+    units_root_xml = get_path_in_ext('assets/units', ext_name)
+
     for ship_size in ['xs', 's', 'm', 'l', 'xl']:
-        ships_path = 'assets/units/size_{}/macros/'.format(ship_size)
+        ships_path = '{}/size_{}/macros/'.format(units_root_xml, ship_size)
         for entry in floader.list_files(ships_path):
             macro_db.load_macro_xml_file(entry.path)
 
 
-def shield_loader(floader, lresolver, macro_db):
+def shield_loader(floader, lresolver, macro_db, ext_name):
     """Loads shield game macro files and returns shield data.
     This function will set the macro_db's macro parser and component parser.
 
@@ -503,6 +511,7 @@ def shield_loader(floader, lresolver, macro_db):
     floader: FileLoader to use.
     lresolver: LanguageResolver used to resolve ship names.
     macro_db: MacroDB used to load macros.
+    ext_name: extension to load shields from. Use None for the base game.
     """
     # pylint: disable=no-value-for-parameter
     macro_db.set_macro_parser(
@@ -510,14 +519,17 @@ def shield_loader(floader, lresolver, macro_db):
     )
     macro_db.set_component_parser(component_parser)
 
-    for entry in floader.list_files('assets/props/SurfaceElements/macros/'):
+    shields_xml_root = get_path_in_ext(
+        'assets/props/SurfaceElements/macros/', ext_name)
+
+    for entry in floader.list_files(shields_xml_root):
         if not entry.name.startswith('shield_'):
             continue
 
         macro_db.load_macro_xml_file(entry.path)
 
 
-def engine_loader(floader, lresolver, macro_db):
+def engine_loader(floader, lresolver, macro_db, ext_name):
     """Loads engine game macro files and returns engine data.
     This function will set the macro_db's macro parser and component parser.
 
@@ -525,6 +537,7 @@ def engine_loader(floader, lresolver, macro_db):
     floader: FileLoader to use.
     lresolver: LanguageResolver used to resolve ship names.
     macro_db: MacroDB used to load macros.
+    ext_name: extension to load engines from. Use None for the base game.
     """
     # pylint: disable=no-value-for-parameter
     macro_db.set_macro_parser(
@@ -532,7 +545,9 @@ def engine_loader(floader, lresolver, macro_db):
     )
     macro_db.set_component_parser(component_parser)
 
-    for entry in floader.list_files('assets/props/Engines/macros/'):
+    egines_xml_root = get_path_in_ext('assets/props/Engines/macros/', ext_name)
+
+    for entry in floader.list_files(egines_xml_root):
         if not entry.name.startswith('engine_') and \
            not entry.name.startswith('thruster_'):
             continue
@@ -540,7 +555,7 @@ def engine_loader(floader, lresolver, macro_db):
         macro_db.load_macro_xml_file(entry.path)
 
 
-def weapon_loader(floader, lresolver, macro_db):
+def weapon_loader(floader, lresolver, macro_db, ext_name):
     """Loads weapon game macro files and returns weapon data.
     This function will set the macro_db's macro parser and component parser.
 
@@ -548,6 +563,7 @@ def weapon_loader(floader, lresolver, macro_db):
     floader: FileLoader to use.
     lresolver: LanguageResolver used to resolve ship names.
     macro_db: MacroDB used to load macros.
+    ext_name: extension to load weapons from. Use None for the base game.
     """
     # pylint: disable=no-value-for-parameter
     macro_db.set_macro_parser(
@@ -555,11 +571,18 @@ def weapon_loader(floader, lresolver, macro_db):
     )
     macro_db.set_component_parser(component_parser)
 
-    for weapon_type in ['capital', 'heavy', 'mining', 'standard', 'spacesuit',
-                        'energy']:
-        path = 'assets/props/WeaponSystems/{}/macros/'.format(weapon_type)
+    weapon_xml_root = get_path_in_ext('assets/props/WeaponSystems', ext_name)
 
-        for entry in floader.list_files(path):
+    for weapon_type in ['capital', 'heavy', 'mining', 'standard', 'spacesuit',
+                        'energy', 'xref_parts']:
+        path = '{}/{}/macros/'.format(weapon_xml_root, weapon_type)
+
+        try:
+            entries = list(floader.list_files(path))
+        except ValueError:
+            continue
+
+        for entry in entries:
             if not entry.name.startswith('weapon_') and \
                not entry.name.startswith('turret_') and \
                not entry.name.startswith('spacesuit_gen_laser_') and \
@@ -568,14 +591,16 @@ def weapon_loader(floader, lresolver, macro_db):
 
             macro_db.load_macro_xml_file(entry.path)
 
-    for entry in floader.list_files('assets/fx/weaponFx/macros'):
+    bullet_xml_root = get_path_in_ext('assets/fx/weaponFx/macros', ext_name)
+
+    for entry in floader.list_files(bullet_xml_root):
         if not entry.name.startswith('bullet_'):
             continue
 
         macro_db.load_macro_xml_file(entry.path)
 
 
-def missilelauncher_loader(floader, lresolver, macro_db):
+def missilelauncher_loader(floader, lresolver, macro_db, ext_name):
     """Loads missile launcher game macro files and returns missile launchers
     data. This function will set the macro_db's macro parser and component
     parser.
@@ -584,6 +609,8 @@ def missilelauncher_loader(floader, lresolver, macro_db):
     floader: FileLoader to use.
     lresolver: LanguageResolver used to resolve ship names.
     macro_db: MacroDB used to load macros.
+    ext_name: extension to load missile launchers from.
+              Use None for the base game.
     """
     # pylint: disable=no-value-for-parameter
     macro_db.set_macro_parser(
@@ -591,10 +618,17 @@ def missilelauncher_loader(floader, lresolver, macro_db):
     )
     macro_db.set_component_parser(component_parser)
 
-    for missile_type in ['dumbfire', 'guided', 'torpedo', 'spacesuit']:
-        path = 'assets/props/WeaponSystems/{}/macros/'.format(missile_type)
+    weapon_xml_root = get_path_in_ext('assets/props/WeaponSystems', ext_name)
 
-        for entry in floader.list_files(path):
+    for missile_type in ['dumbfire', 'guided', 'torpedo', 'spacesuit']:
+        path = '{}/{}/macros/'.format(weapon_xml_root, missile_type)
+
+        try:
+            entries = list(floader.list_files(path))
+        except ValueError:
+            continue
+
+        for entry in entries:
             if not entry.name.startswith('weapon_') and \
                not entry.name.startswith('turret_') and \
                not entry.name.startswith('spacesuit_gen_bomblauncher_'):
@@ -602,14 +636,18 @@ def missilelauncher_loader(floader, lresolver, macro_db):
 
             macro_db.load_macro_xml_file(entry.path)
 
-    missiles_path = 'assets/props/WeaponSystems/missile/macros'
-    for entry in floader.list_files(missiles_path):
+    missiles_xml_root = get_path_in_ext(
+        'assets/props/WeaponSystems/missile/macros', ext_name)
+
+    for entry in floader.list_files(missiles_xml_root):
         if not entry.name.startswith('missile_'):
             continue
 
         macro_db.load_macro_xml_file(entry.path)
 
-    for entry in floader.list_files('assets/fx/weaponFx/macros'):
+    bomb_xml_root = get_path_in_ext('assets/fx/weaponFx/macros', ext_name)
+
+    for entry in floader.list_files(bomb_xml_root):
         if not entry.name.startswith('bomb_'):
             continue
 

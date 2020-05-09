@@ -6,6 +6,7 @@ import logging
 from lxml import etree
 
 
+from misc import get_path_in_ext
 LOG = logging.getLogger(__name__)
 
 
@@ -72,18 +73,14 @@ class MacroDB:
         """
         self.macro_index = {}
         self.component_index = {}
-        self.floader = floader
+        self.floader = None
         self.macros = {}
         self.macros_by_type = {}
         self.dependencies = set()
 
         self.macro_parser = noop_parser
         self.component_parser = noop_parser
-
-        self._load_index('index/macros.xml', self.macro_index)
-        self._load_index('index/components.xml', self.component_index)
-
-        self._fix_missing_index_entries()
+        self.set_floader(floader)
 
     def _load_index(self, path, dest):
         """Load an index file.
@@ -104,6 +101,26 @@ class MacroDB:
 
         self.component_index['cockpit_invisible_escapepod'] = \
             'assets/units/size_s/cockpit_invisible_escapepod.xml'
+
+    def set_floader(self, floader):
+        """Set the file loader and reset the index.
+
+        Arguments:
+        floader: file loader that will be used by this object.
+        """
+        self.floader = floader
+
+        self.macro_index = {}
+        self.component_index = {}
+
+        for ext_name in [None] + floader.get_extensions():
+            macros_path = get_path_in_ext('index/macros.xml', ext_name)
+            components_path = get_path_in_ext('index/components.xml', ext_name)
+
+            self._load_index(macros_path, self.macro_index)
+            self._load_index(components_path, self.component_index)
+
+        self._fix_missing_index_entries()
 
     def set_macro_parser(self, macro_parser):
         """Sets the macro parser."""

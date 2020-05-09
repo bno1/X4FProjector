@@ -1,20 +1,23 @@
 """Loads data about all wares."""
 
 from lxml import etree
-from misc import get_xpath_attribs, get_xpath_attrib
+from misc import get_xpath_attribs, get_xpath_attrib, get_path_in_ext
 
 
-def ware_loader(floader, lresolver):
+def ware_loader(floader, lresolver, ext_name):
     """Loads and parses wares and returns a ware_id -> ware_props dict.
     Ware properties is a dictionary.
 
     Arguments:
     floader: file loader.
     lresolver: language resolver.
+    ext_name: extension to load wares from. Use None for the base game.
     """
     wares = {}
 
-    with floader.open_file('libraries/wares.xml') as wares_file:
+    wares_xml_path = get_path_in_ext('libraries/wares.xml', ext_name)
+
+    with floader.open_file(wares_xml_path) as wares_file:
         tree = etree.parse(wares_file)
 
     for ware in tree.xpath('./ware'):
