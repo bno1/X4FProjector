@@ -129,7 +129,7 @@ def macro_parser(macro_id, macro_type, prop_node, lresolver):
         props['docksize'] = get_xpath_attrib(prop_node, './docksize', 'tags')
 
         dock = get_xpath_attribs(prop_node, './dock', {})
-        props['dock_external'] = int(dock['external'])
+        props['dock_external'] = int(dock.get('external', 0))
         props['dock_capacity'] = int(dock.get('capacity', 1))
         props['dock_allow'] = int(dock.get('allow', 1))
         props['dock_storage'] = int(dock.get('storage', 0))
@@ -209,14 +209,14 @@ def macro_parser(macro_id, macro_type, prop_node, lresolver):
         props['hull_hittable'] = int(hull.get('hittable', 1))
     elif macro_type == 'bullet':
         bullet = get_xpath_attribs(prop_node, './bullet', {})
-        props['speed'] = int(bullet.get('speed', 0))
+        props['speed'] = float(bullet.get('speed', 0))
         props['lifetime'] = float(bullet.get('lifetime', 0))
         props['range'] = int(bullet.get('range', 0))
         props['amount'] = int(bullet.get('amount', 0))
         props['barrelamount'] = int(bullet.get('barrelamount', 0))
         props['timediff'] = float(bullet.get('timediff', 0))
         props['angle'] = float(bullet.get('angle', 0))
-        props['maxhits'] = int(bullet.get('maxhists', 0))
+        props['maxhits'] = int(bullet.get('maxhits', 0))
         props['ricochet'] = float(bullet.get('ricochet', 0))
         props['restitution'] = float(bullet.get('restitution', 0))
         props['scale'] = int(bullet.get('scale', 0))
@@ -225,7 +225,7 @@ def macro_parser(macro_id, macro_type, prop_node, lresolver):
 
         heat = get_xpath_attribs(prop_node, './heat', {})
         props['heat'] = int(heat.get('value', 0))
-        props['heat_initial'] = int(heat.get('initia;', 0))
+        props['heat_initial'] = int(heat.get('initial', 0))
 
         reload_attrs = get_xpath_attribs(prop_node, './reload', {})
         props['reload_rate'] = float(reload_attrs.get('rate', 0))
